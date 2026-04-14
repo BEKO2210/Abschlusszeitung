@@ -9,10 +9,23 @@
   // ---------- State / Storage ----------
 
   const STORAGE_KEY = 'abschiedszeitung:v1';
-  const THEMES = ['default', 'warm', 'forest', 'sunset', 'mono'];
+
+  // Sorgfältig kuratierte Farbschemata. Jede Variante ist druckfreundlich
+  // (ausreichender Kontrast auf weißem/cremefarbenem Papier, keine Neons).
+  const THEMES = [
+    { id: 'default', name: 'Klassisch Blau',  desc: 'Zeitloses Schulblau',       accent: '#0055a4', paper: '#ffffff' },
+    { id: 'forest',  name: 'Waldgrün',        desc: 'Ruhig, erdend',             accent: '#2f6a4f', paper: '#ffffff' },
+    { id: 'ocean',   name: 'Ozean',           desc: 'Petrol, frisch',            accent: '#2a7a8a', paper: '#ffffff' },
+    { id: 'plum',    name: 'Pflaume',         desc: 'Warm, elegant',             accent: '#6b4a7a', paper: '#ffffff' },
+    { id: 'rose',    name: 'Rosenholz',       desc: 'Weich, freundlich',         accent: '#b85672', paper: '#ffffff' },
+    { id: 'sunset',  name: 'Sonnenuntergang', desc: 'Energisch, herzlich',       accent: '#d0492e', paper: '#ffffff' },
+    { id: 'warm',    name: 'Terrakotta',      desc: 'Ocker auf cremefarben',     accent: '#b2542b', paper: '#faf7f1' },
+    { id: 'mono',    name: 'Monochrom',       desc: 'Reduzierter Graustil',      accent: '#1a1a1a', paper: '#ffffff' }
+  ];
+  const THEME_IDS = THEMES.map(t => t.id);
 
   /** @type {any} */
-  let state = loadState() || defaultState();
+  let state = normalizeState(loadState()) || defaultState();
 
   function defaultState() {
     return {
@@ -25,14 +38,18 @@
         subtitle: 'Grundschule — Eine Zeitung zum Abschied',
         schoolName: 'Grundschule',
         schoolYears: 'Schuljahre 2022 – 2026',
-        page2Title: 'Wer wir sind',
-        page2Kicker: 'Steckbriefe unserer Klasse',
-        page2Footer: 'Abschiedszeitung — Klasse 4X',
-        page3Title: 'Unsere Erinnerungen',
-        page3Kicker: 'Vier Jahre in Bildern und Worten',
-        page3Footer: 'Klassenfahrten, Waldtage & Projekte',
-        page4Title: 'Warme Duschen & Abschied',
-        page4Kicker: 'Worte zum Mitnehmen',
+        // Spread (Seiten 2+3)
+        spreadTitle: 'Unsere Klasse',
+        spreadKicker: 'Alle Mitschülerinnen und Mitschüler auf einen Blick',
+        spreadFooterLeft: 'Klasse 4X — Abschiedszeitung',
+        spreadTitleRight: '… und das sind wir.',
+        spreadKickerRight: 'Jede:r ein eigener Kosmos.',
+        spreadFooterRight: 'Grundschule — Jahrgang 2026',
+        // Seite 4
+        page4Title: 'Erinnerungen & Abschied',
+        page4Kicker: 'Vier Jahre in Bildern, Worten und Wünschen',
+        memoriesTitle: 'Unsere schönsten Momente',
+        showersTitle: 'Warme Duschen',
         teacherTitle: 'Ein Gruß vom Klassenteam',
         teacherText: 'Liebe Kinder, vier Jahre lang haben wir gemeinsam gelernt, gelacht, gestritten und uns wieder vertragen. Ihr seid zu einer starken Gemeinschaft zusammengewachsen. Wir wünschen euch für die Zukunft Mut, Neugier und echte Freundinnen und Freunde. Bleibt so, wie ihr seid — und traut euch, mehr zu werden.',
         teacherSign: 'Euer Klassenteam',
@@ -95,6 +112,41 @@
     }
   }
 
+  /**
+   * Sanftes Upgrade alter localStorage-States auf das aktuelle Schema.
+   * Migration: frühere page2/page3-Felder → neue spread-Felder.
+   * Außerdem: fehlende Listen / Objekte auffüllen.
+   */
+  function normalizeState(loaded) {
+    if (!loaded || typeof loaded !== 'object') return null;
+    const d = defaultState();
+
+    // Defensive Listen / Objekte
+    if (!Array.isArray(loaded.students)) loaded.students = d.students;
+    if (!Array.isArray(loaded.memories)) loaded.memories = d.memories;
+    if (!Array.isArray(loaded.showers))  loaded.showers  = d.showers;
+    if (!loaded.photos || typeof loaded.photos !== 'object') loaded.photos = { hero: null };
+    if (!loaded.fields || typeof loaded.fields !== 'object') loaded.fields = {};
+
+    const f = loaded.fields;
+
+    // Migration: alte Feldnamen → neue
+    if (f.page2Title && !f.spreadTitle)    f.spreadTitle    = f.page2Title;
+    if (f.page2Kicker && !f.spreadKicker)  f.spreadKicker   = f.page2Kicker;
+    if (f.page2Footer && !f.spreadFooterLeft) f.spreadFooterLeft = f.page2Footer;
+    if (f.page3Title && !f.memoriesTitle)  f.memoriesTitle  = f.page3Title;
+
+    // Fehlende Default-Felder ergänzen (damit Platzhalter nicht leer bleiben)
+    Object.entries(d.fields).forEach(([k, v]) => {
+      if (f[k] === undefined || f[k] === null) f[k] = v;
+    });
+
+    // Theme-ID auf gültigen Wert beschränken
+    if (!THEME_IDS.includes(loaded.theme)) loaded.theme = 'default';
+
+    return loaded;
+  }
+
   let saveTimer = null;
   function saveState() {
     clearTimeout(saveTimer);
@@ -124,39 +176,145 @@
     // Hero photo
     applyPhoto(document.querySelector('.photo[data-photo="hero"]'), state.photos.hero);
 
-    // Students
-    renderList('student-grid', 'tpl-student', state.students, (root, item) => {
-      root.dataset.studentId = item.id;
-      setField(root, 'name', item.name);
-      setField(root, 'fach', item.fach);
-      setField(root, 'hobby', item.hobby);
-      setField(root, 'beruf', item.beruf);
-      setField(root, 'memory', item.memory);
-      const photoEl = root.querySelector('.photo');
-      photoEl.dataset.photo = 'student:' + item.id;
-      applyPhoto(photoEl, item.photo);
-    });
+    // Students auf zwei Seiten splitten (Yearbook-Spread)
+    renderStudentSpread();
 
     // Memories
-    renderList('memory-bento', 'tpl-memory', state.memories, (root, item) => {
-      root.dataset.memoryId = item.id;
-      setField(root, 'title', item.title);
-      setField(root, 'meta', item.meta);
-      setField(root, 'text', item.text);
-      const photoEl = root.querySelector('.photo');
-      photoEl.dataset.photo = 'memory:' + item.id;
-      applyPhoto(photoEl, item.photo);
-    });
+    const memoryContainer = document.getElementById('memory-bento');
+    if (state.memories.length === 0) {
+      memoryContainer.innerHTML = '<div class="empty-state">Noch keine Erinnerungen. In der Sidebar <strong>+ Erinnerung</strong> klicken.</div>';
+    } else {
+      renderList('memory-bento', 'tpl-memory', state.memories, (root, item) => {
+        root.dataset.memoryId = item.id;
+        setField(root, 'title', item.title);
+        setField(root, 'meta', item.meta);
+        setField(root, 'text', item.text);
+        const photoEl = root.querySelector('.photo');
+        photoEl.dataset.photo = 'memory:' + item.id;
+        applyPhoto(photoEl, item.photo);
+      });
+    }
 
     // Showers
-    renderList('shower-grid', 'tpl-shower', state.showers, (root, item) => {
-      root.dataset.showerId = item.id;
-      setField(root, 'text', item.text);
-      setField(root, 'from', item.from);
-    });
+    const showerContainer = document.getElementById('shower-grid');
+    if (state.showers.length === 0) {
+      showerContainer.innerHTML = '<div class="empty-state">Noch keine Zitate. <strong>+ Zitat</strong> in der Sidebar.</div>';
+    } else {
+      renderList('shower-grid', 'tpl-shower', state.showers, (root, item) => {
+        root.dataset.showerId = item.id;
+        setField(root, 'text', item.text);
+        setField(root, 'from', item.from);
+      });
+    }
+
+    // Zähler in Sidebar
+    updateCounters();
 
     // Print-Mirror aktualisieren
     mirrorPrintLayout();
+  }
+
+  // ---------- Yearbook-Spread Rendering ----------
+
+  /**
+   * Berechnet die optimale Grid-Aufteilung für den Spread.
+   * Ziel: keine halb-leeren Seiten, ausgewogene Spalten x Reihen,
+   * bis 30 Kinder insgesamt.
+   */
+  function computeSpreadLayout(totalCount) {
+    // Minimum: immer mindestens 2 Karten pro Seite zeigen, auch wenn leer
+    const visualCount = Math.max(totalCount, 2);
+
+    // Aufteilung: linke Seite = ceil(n/2), rechte = floor(n/2)
+    const leftCount  = Math.ceil(visualCount / 2);
+    const rightCount = Math.floor(visualCount / 2);
+
+    // Tier (beide Seiten nutzen dasselbe Tier, damit die Optik gleich ist)
+    // Richtgröße: größere Hälfte bestimmt das Tier.
+    const perPage = leftCount;
+
+    let tier, cols, rows;
+    if (perPage <= 2)      { tier = 'tier-xl';  cols = 1; rows = 2; }
+    else if (perPage <= 4) { tier = 'tier-l';   cols = 2; rows = 2; }
+    else if (perPage <= 6) { tier = 'tier-m';   cols = 2; rows = 3; }
+    else if (perPage <= 9) { tier = 'tier-s';   cols = 3; rows = 3; }
+    else if (perPage <= 12){ tier = 'tier-xs';  cols = 3; rows = 4; }
+    else                   { tier = 'tier-xxs'; cols = 3; rows = 5; }
+
+    return { tier, cols, rows, leftCount, rightCount };
+  }
+
+  function renderStudentSpread() {
+    const leftEl  = document.getElementById('student-grid-left');
+    const rightEl = document.getElementById('student-grid-right');
+    if (!leftEl || !rightEl) return;
+
+    const total = state.students.length;
+
+    // Empty-State
+    if (total === 0) {
+      const msg = '<div class="empty-state">Noch keine Steckbriefe. Links in der Sidebar auf <strong>+ Steckbrief</strong> klicken.</div>';
+      leftEl.innerHTML  = msg;
+      rightEl.innerHTML = '';
+      leftEl.style.removeProperty('--cols');
+      leftEl.style.removeProperty('--rows');
+      ['tier-xl','tier-l','tier-m','tier-s','tier-xs','tier-xxs'].forEach(c => {
+        document.getElementById('page-2').classList.remove(c);
+        document.getElementById('page-3').classList.remove(c);
+      });
+      return;
+    }
+
+    const layout = computeSpreadLayout(total);
+
+    // Tier-Klassen am SEITEN-Container (damit Tier-Selektoren greifen)
+    const page2 = document.getElementById('page-2');
+    const page3 = document.getElementById('page-3');
+    ['tier-xl', 'tier-l', 'tier-m', 'tier-s', 'tier-xs', 'tier-xxs'].forEach(c => {
+      page2.classList.remove(c);
+      page3.classList.remove(c);
+    });
+    page2.classList.add(layout.tier);
+    page3.classList.add(layout.tier);
+
+    // Grid-Dimensionen via CSS-Variablen
+    [leftEl, rightEl].forEach(el => {
+      el.style.setProperty('--cols', layout.cols);
+      el.style.setProperty('--rows', layout.rows);
+    });
+
+    // Liste splitten
+    const half = Math.ceil(total / 2);
+    const leftList  = state.students.slice(0, half);
+    const rightList = state.students.slice(half);
+
+    fillStudentGrid(leftEl,  leftList);
+    fillStudentGrid(rightEl, rightList);
+  }
+
+  function fillStudentGrid(container, list) {
+    const tpl = document.getElementById('tpl-student');
+    container.innerHTML = '';
+    list.forEach(item => {
+      const clone = tpl.content.firstElementChild.cloneNode(true);
+      clone.dataset.studentId = item.id;
+      setField(clone, 'name', item.name);
+      setField(clone, 'fach', item.fach);
+      setField(clone, 'hobby', item.hobby);
+      setField(clone, 'beruf', item.beruf);
+      setField(clone, 'memory', item.memory);
+      const photoEl = clone.querySelector('.photo');
+      photoEl.dataset.photo = 'student:' + item.id;
+      applyPhoto(photoEl, item.photo);
+      container.appendChild(clone);
+    });
+  }
+
+  function updateCounters() {
+    const set = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+    set('count-students', state.students.length);
+    set('count-memories', state.memories.length);
+    set('count-showers',  state.showers.length);
   }
 
   function setField(root, name, value) {
@@ -270,9 +428,17 @@
     const file = input.files && input.files[0];
     if (!file) return;
     const photo = input.closest('.photo');
+    if (!file.type.startsWith('image/')) {
+      toast('Nur Bild-Dateien (JPG, PNG, WebP).');
+      input.value = '';
+      return;
+    }
     readFileAsResizedDataURL(file, 1600, 0.85).then(dataUrl => {
       setPhoto(photo.dataset.photo, dataUrl);
       render();
+    }).catch(err => {
+      toast('Bild konnte nicht geladen werden.');
+      console.warn('Upload-Fehler:', err);
     });
     input.value = '';
   });
@@ -294,10 +460,17 @@
     e.preventDefault();
     photo.classList.remove('drop-hover');
     const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (!file || !file.type.startsWith('image/')) return;
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast('Nur Bild-Dateien (JPG, PNG, WebP).');
+      return;
+    }
     readFileAsResizedDataURL(file, 1600, 0.85).then(dataUrl => {
       setPhoto(photo.dataset.photo, dataUrl);
       render();
+    }).catch(err => {
+      toast('Bild konnte nicht geladen werden.');
+      console.warn('Drop-Fehler:', err);
     });
   });
 
@@ -361,104 +534,274 @@
     });
   }
 
-  // ---------- Toolbar / Sidebar-Aktionen ----------
+  // ---------- UI: Toast, Modals, Menü, Sidebar ----------
+
+  function toast(msg, ms) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = false;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { el.hidden = true; }, ms || 2200);
+  }
+
+  function on(id, evt, handler) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(evt, handler);
+  }
+
+  // ---------- View-Umschalter ----------
 
   document.querySelectorAll('.view-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view-toggle').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
       btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
       workspace.dataset.view = btn.dataset.view;
       if (btn.dataset.view === 'print-layout') mirrorPrintLayout();
     });
   });
 
-  document.getElementById('btn-print').addEventListener('click', () => {
-    // Immer das Druck-Layout drucken - Mirror aktualisieren
+  // ---------- Drucken ----------
+
+  on('btn-print', 'click', () => {
     mirrorPrintLayout();
     setTimeout(() => window.print(), 50);
   });
 
-  document.getElementById('btn-theme').addEventListener('click', () => {
-    const i = THEMES.indexOf(state.theme || 'default');
-    state.theme = THEMES[(i + 1) % THEMES.length];
-    saveState();
-    render();
+  // ---------- Overflow-Menü (Kebab) ----------
+
+  const moreBtn = document.getElementById('btn-more');
+  const moreMenu = document.getElementById('more-menu');
+  function setMenuOpen(open) {
+    if (!moreMenu || !moreBtn) return;
+    moreMenu.hidden = !open;
+    moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  if (moreBtn && moreMenu) {
+    moreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setMenuOpen(moreMenu.hidden);
+    });
+    document.addEventListener('click', (e) => {
+      if (!moreMenu.hidden && !moreMenu.contains(e.target) && e.target !== moreBtn) {
+        setMenuOpen(false);
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    });
+    // Klick auf Menü-Eintrag schließt das Menü
+    moreMenu.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') setMenuOpen(false);
+    });
+  }
+
+  // ---------- Theme-Modal ----------
+
+  const themeModal = document.getElementById('theme-modal');
+  const themeGrid = document.getElementById('theme-grid');
+  let pendingTheme = null;
+
+  function buildThemeGrid() {
+    if (!themeGrid) return;
+    themeGrid.innerHTML = '';
+    THEMES.forEach(t => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'theme-card' + (t.id === (pendingTheme || state.theme) ? ' selected' : '');
+      card.dataset.theme = t.id;
+      card.style.setProperty('--tc-accent', t.accent);
+      card.style.setProperty('--tc-paper', t.paper);
+      card.innerHTML =
+        '<div class="theme-card-preview" aria-hidden="true"></div>' +
+        '<div class="theme-card-name"></div>' +
+        '<div class="theme-card-desc"></div>';
+      card.querySelector('.theme-card-name').textContent = t.name;
+      card.querySelector('.theme-card-desc').textContent = t.desc;
+      card.addEventListener('click', () => {
+        pendingTheme = t.id;
+        // Live-Vorschau
+        document.documentElement.setAttribute('data-theme', t.id);
+        themeGrid.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      });
+      themeGrid.appendChild(card);
+    });
+  }
+
+  on('btn-theme', 'click', () => {
+    if (!themeModal) return;
+    pendingTheme = state.theme;
+    buildThemeGrid();
+    if (typeof themeModal.showModal === 'function') {
+      themeModal.showModal();
+    } else {
+      themeModal.setAttribute('open', '');
+    }
   });
 
-  document.getElementById('btn-export').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'abschiedszeitung-' + new Date().toISOString().slice(0, 10) + '.json';
-    a.click();
-    URL.revokeObjectURL(url);
+  if (themeModal) {
+    themeModal.addEventListener('close', () => {
+      if (themeModal.returnValue === 'apply' && pendingTheme) {
+        state.theme = pendingTheme;
+        saveState();
+        toast('Farbschema übernommen');
+      } else {
+        // Zurück auf gespeichertes Theme
+        document.documentElement.setAttribute('data-theme', state.theme || 'default');
+      }
+      pendingTheme = null;
+      render();
+    });
+  }
+
+  // ---------- Hilfe-Dialog ----------
+
+  const helpModal = document.getElementById('help-modal');
+  on('btn-help', 'click', () => {
+    if (helpModal && typeof helpModal.showModal === 'function') helpModal.showModal();
   });
 
-  document.getElementById('btn-import').addEventListener('click', () => {
-    document.getElementById('file-import').click();
+  // ---------- Export / Import / Reset ----------
+
+  on('btn-export', 'click', () => {
+    try {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'abschiedszeitung-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast('Projekt als JSON gespeichert');
+    } catch (e) {
+      alert('Export fehlgeschlagen: ' + e.message);
+    }
   });
-  document.getElementById('file-import').addEventListener('change', (e) => {
-    const file = e.target.files[0];
+
+  on('btn-import', 'click', () => {
+    const input = document.getElementById('file-import');
+    if (input) input.click();
+  });
+  on('file-import', 'change', (e) => {
+    const file = e.target.files && e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
+    reader.onerror = () => alert('Datei konnte nicht gelesen werden.');
     reader.onload = () => {
       try {
         const loaded = JSON.parse(reader.result);
-        if (!loaded || typeof loaded !== 'object') throw new Error('invalid');
+        if (!loaded || typeof loaded !== 'object') throw new Error('Ungültiges Format');
+        if (!Array.isArray(loaded.students)) throw new Error('Liste der Mitschüler fehlt');
+        if (!Array.isArray(loaded.memories)) loaded.memories = [];
+        if (!Array.isArray(loaded.showers))  loaded.showers  = [];
+        if (!loaded.fields || typeof loaded.fields !== 'object') loaded.fields = {};
+        if (!loaded.photos || typeof loaded.photos !== 'object') loaded.photos = { hero: null };
         state = loaded;
         saveState();
         render();
+        toast('Projekt geladen');
       } catch (err) {
-        alert('Diese Datei konnte nicht geladen werden.');
+        alert('Diese Datei konnte nicht geladen werden:\n' + err.message);
       }
     };
     reader.readAsText(file);
     e.target.value = '';
   });
 
-  document.getElementById('btn-reset').addEventListener('click', () => {
-    if (!confirm('Alle Inhalte und Bilder wirklich loeschen und mit Beispiel neu starten?')) return;
+  on('btn-reset', 'click', () => {
+    if (!confirm('Wirklich alle Inhalte und Bilder löschen und mit Beispiel-Zeitung neu starten?')) return;
     localStorage.removeItem(STORAGE_KEY);
     state = defaultState();
     saveState();
     render();
+    toast('Zurückgesetzt');
   });
 
-  document.getElementById('add-student').addEventListener('click', () => {
+  // ---------- Hinzufügen ----------
+
+  on('add-student', 'click', () => {
+    if (state.students.length >= 30) {
+      toast('Maximal 30 Mitschüler:innen (Platz auf dem Spread)');
+      return;
+    }
     state.students.push({
       id: uid(),
       name: 'Neuer Steckbrief',
       fach: '',
       hobby: '',
       beruf: '',
-      memory: 'Meine schoenste Erinnerung: ...',
+      memory: 'Meine schönste Erinnerung: …',
       photo: null
     });
     saveState();
     render();
   });
 
-  document.getElementById('add-memory').addEventListener('click', () => {
+  on('add-memory', 'click', () => {
     state.memories.push({
       id: uid(),
       title: 'Neue Erinnerung',
-      meta: 'Ort / Jahr',
-      text: 'Kurzer Text ...',
+      meta: 'Ort · Jahr',
+      text: 'Kurzer Text …',
       photo: null
     });
     saveState();
     render();
   });
 
-  document.getElementById('add-shower').addEventListener('click', () => {
+  on('add-shower', 'click', () => {
     state.showers.push({
       id: uid(),
-      text: '„Neues Zitat ...“',
+      text: '„Neues Zitat …"',
       from: '— von'
     });
     saveState();
     render();
+  });
+
+  // ---------- Mobile-Sidebar ----------
+
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  function setSidebarOpen(open) {
+    if (!sidebar || !backdrop) return;
+    sidebar.classList.toggle('open', open);
+    backdrop.hidden = !open;
+  }
+  on('btn-sidebar', 'click', () => setSidebarOpen(!sidebar.classList.contains('open')));
+  if (backdrop) backdrop.addEventListener('click', () => setSidebarOpen(false));
+  if (sidebar) {
+    sidebar.addEventListener('click', (e) => {
+      if (e.target.matches('.sidebar-close')) setSidebarOpen(false);
+      if (e.target.matches('nav a')) setSidebarOpen(false);
+    });
+  }
+
+  // ---------- Tastatur-Shortcuts ----------
+
+  document.addEventListener('keydown', (e) => {
+    // Editor-Inputs nicht stören
+    const inEditable = e.target && e.target.isContentEditable;
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && !inEditable) {
+      e.preventDefault();
+      document.getElementById('btn-export')?.click();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+      e.preventDefault();
+      document.getElementById('btn-print')?.click();
+    }
+    if (e.key === 'Escape') {
+      setMenuOpen(false);
+      setSidebarOpen(false);
+    }
   });
 
   // Print-Mirror debouncen

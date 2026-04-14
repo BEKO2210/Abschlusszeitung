@@ -1,6 +1,6 @@
 /* =========================================================
-   NEWSPAPER LAYOUT - Benno-Style / Swiss / Minimal
-   A4 hochkant (210 x 297 mm). 4 Seiten bilden eine A3-Broschuere.
+   NEWSPAPER LAYOUT - Benno-Style / Yearbook-Spread
+   A4 hochkant (210 x 297 mm). 4 Seiten bilden eine A3-Broschüre.
    ========================================================= */
 
 :root {
@@ -11,6 +11,7 @@
   --rule: #e5e5e3;
   --rule-soft: #efefed;
   --accent: #0055a4;
+  --accent-soft: rgba(0, 85, 164, .08);
   --serif: 'Libre Baskerville', Georgia, serif;
   --sans: 'Inter', system-ui, sans-serif;
   --display: 'Montserrat', 'Inter', sans-serif;
@@ -20,28 +21,21 @@
   --page-pad: 14mm;
 }
 
-/* Farbschema: alternativ (wird per [data-theme] gesetzt) */
-[data-theme="warm"] {
-  --paper: #faf7f1;
-  --accent: #b2542b;
-  --rule: #e4ddcd;
-  --rule-soft: #efe8d8;
-}
-[data-theme="forest"] {
-  --accent: #2f6a4f;
-}
-[data-theme="sunset"] {
-  --accent: #d0492e;
-}
-[data-theme="mono"] {
-  --accent: #1a1a1a;
-}
+/* Farbschemata (werden per [data-theme] am <html> gesetzt) */
+[data-theme="default"] { --accent: #0055a4; --accent-soft: rgba(0,85,164,.08); }
+[data-theme="warm"]    { --accent: #b2542b; --accent-soft: rgba(178,84,43,.08); --paper: #faf7f1; --rule: #e4ddcd; --rule-soft: #efe8d8; }
+[data-theme="forest"]  { --accent: #2f6a4f; --accent-soft: rgba(47,106,79,.08); }
+[data-theme="rose"]    { --accent: #b85672; --accent-soft: rgba(184,86,114,.08); }
+[data-theme="ocean"]   { --accent: #2a7a8a; --accent-soft: rgba(42,122,138,.08); }
+[data-theme="plum"]    { --accent: #6b4a7a; --accent-soft: rgba(107,74,122,.08); }
+[data-theme="sunset"]  { --accent: #d0492e; --accent-soft: rgba(208,73,46,.08); }
+[data-theme="mono"]    { --accent: #1a1a1a; --accent-soft: rgba(26,26,26,.06); }
 
-/* ----- Seite ----- */
+/* ---------- Seite ---------- */
 
 .page {
   width: var(--page-w);
-  min-height: var(--page-h);
+  height: var(--page-h);
   background: var(--paper);
   color: var(--ink);
   padding: var(--page-pad);
@@ -50,59 +44,64 @@
   font-family: var(--sans);
   display: flex;
   flex-direction: column;
-  gap: 10mm;
+  gap: 6mm;
   position: relative;
+  overflow: hidden;
   page-break-after: always;
   break-after: page;
 }
 
 .page-header {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   align-items: baseline;
-  gap: 8mm;
+  column-gap: 6mm;
+  row-gap: 1mm;
   border-bottom: 1px solid var(--ink);
   padding-bottom: 3mm;
+  flex-shrink: 0;
 }
 .page-num {
   font-family: var(--display);
   font-weight: 800;
-  font-size: 11pt;
+  font-size: 10pt;
   letter-spacing: .12em;
   color: var(--accent);
+  grid-row: 1 / 3;
 }
 .page-title {
   font-family: var(--display);
   font-weight: 800;
-  font-size: 22pt;
+  font-size: 20pt;
   letter-spacing: -.01em;
   margin: 0;
   line-height: 1.05;
-  grid-column: 1 / -1;
-  order: 2;
 }
-.page-header .page-num { order: 1; }
 .page-kicker {
-  order: 3;
-  grid-column: 1 / -1;
-  font-size: 10pt;
+  font-size: 9.5pt;
   color: var(--ink-muted);
   margin: 0;
   font-style: italic;
   font-family: var(--serif);
+  grid-column: 2;
 }
+
+/* Spread-Header variante (rechte Seite mit continuation) */
+.spread-header.continuation .page-title { color: var(--ink-soft); }
+
 .page-footer {
   margin-top: auto;
   border-top: 1px solid var(--rule);
-  padding-top: 3mm;
+  padding-top: 2mm;
   display: flex;
   justify-content: space-between;
-  font-size: 8.5pt;
+  font-size: 8pt;
   color: var(--ink-muted);
   letter-spacing: .04em;
   text-transform: uppercase;
   font-family: var(--display);
   font-weight: 600;
+  flex-shrink: 0;
 }
 .folio { letter-spacing: .2em; }
 
@@ -113,7 +112,7 @@
 .cover {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  height: calc(var(--page-h) - 2 * var(--page-pad));
+  height: 100%;
   gap: 8mm;
 }
 .cover-top {
@@ -129,13 +128,8 @@
   font-size: 10pt;
 }
 .cover-kicker { color: var(--accent); }
-.cover-year { color: var(--ink); }
 
-.cover-hero {
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-}
+.cover-hero { display: flex; align-items: stretch; }
 .photo-hero {
   width: 100%;
   aspect-ratio: 4 / 3;
@@ -145,20 +139,16 @@
 }
 .photo-hero img { border-radius: 3mm; }
 
-.cover-bottom { text-align: left; }
 .cover-title {
   font-family: var(--display);
   font-weight: 900;
-  font-size: 54pt;
+  font-size: 52pt;
   line-height: .95;
   letter-spacing: -.02em;
   margin: 0 0 4mm;
   display: flex;
   flex-direction: column;
-  gap: 2mm;
-}
-.cover-title span[contenteditable] {
-  display: block;
+  gap: 1mm;
 }
 .cover-title .cover-divider {
   height: 2px;
@@ -183,183 +173,316 @@
   display: flex;
   gap: 2mm;
   align-items: baseline;
+  flex-wrap: wrap;
 }
 .cover-meta .dot { color: var(--accent); }
 
 /* =========================================================
-   SEITE 2 - STECKBRIEFE (Bento Grid)
+   SEITEN 2 + 3 - JAHRBUCH-SPREAD
    ========================================================= */
 
-.student-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6mm;
+.page-spread .student-grid {
   flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), 1fr);
+  grid-template-rows: repeat(var(--rows, 3), 1fr);
+  gap: var(--gap, 4mm);
 }
+
+.empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10mm;
+  border: 1px dashed var(--rule);
+  border-radius: 4mm;
+  color: var(--ink-muted);
+  font-style: italic;
+  font-size: 10pt;
+  line-height: 1.5;
+}
+.empty-state strong { color: var(--accent); font-style: normal; }
+
+/* Karten-Stile je nach Skalierung (wird per Klasse am Grid gesetzt) */
 .student-card {
   border: 1px solid var(--rule);
-  border-radius: 4mm;
-  padding: 5mm;
+  border-radius: 3mm;
+  background: var(--paper);
   display: grid;
-  grid-template-columns: 28mm 1fr;
-  gap: 5mm;
+  padding: var(--card-pad, 3mm);
+  gap: var(--card-gap, 2mm);
+  grid-template-columns: var(--card-photo-size, 20mm) 1fr;
+  align-items: start;
   break-inside: avoid;
   page-break-inside: avoid;
-  background: var(--paper);
+  min-width: 0;
+  overflow: hidden;
 }
+
 .photo-student {
-  width: 28mm;
-  height: 28mm;
+  width: var(--card-photo-size, 20mm);
+  height: var(--card-photo-size, 20mm);
   border-radius: 50%;
   margin: 0;
   background: var(--rule-soft);
+  flex-shrink: 0;
 }
 .photo-student img { border-radius: 50%; }
 
-.student-body { min-width: 0; }
+.student-body { min-width: 0; overflow: hidden; }
+
 .student-name {
   font-family: var(--display);
   font-weight: 800;
-  font-size: 14pt;
+  font-size: var(--card-name-size, 11pt);
   line-height: 1.1;
-  margin: 0 0 3mm;
+  margin: 0 0 var(--card-name-mb, 2mm);
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 .student-facts {
-  margin: 0 0 3mm;
+  margin: 0 0 var(--card-facts-mb, 2mm);
   display: grid;
-  gap: 1.5mm;
-  font-size: 9pt;
+  gap: 1mm;
+  font-size: var(--card-fact-size, 8.5pt);
 }
 .student-facts > div {
   display: grid;
-  grid-template-columns: 22mm 1fr;
-  gap: 2mm;
+  grid-template-columns: var(--card-label-w, 20mm) 1fr;
+  gap: 1.5mm;
+  align-items: baseline;
 }
 .student-facts dt {
   font-family: var(--display);
   font-weight: 600;
-  letter-spacing: .08em;
+  letter-spacing: .06em;
   text-transform: uppercase;
-  font-size: 8pt;
+  font-size: var(--card-dt-size, 7pt);
   color: var(--ink-muted);
 }
 .student-facts dd {
   margin: 0;
   color: var(--ink);
+  overflow-wrap: anywhere;
 }
 .student-memory {
   font-family: var(--serif);
   font-style: italic;
-  font-size: 9pt;
-  line-height: 1.35;
+  font-size: var(--card-memory-size, 8pt);
+  line-height: 1.3;
   margin: 0;
   color: var(--ink-soft);
   border-top: 1px solid var(--rule-soft);
-  padding-top: 2mm;
+  padding-top: 1.5mm;
+  overflow-wrap: anywhere;
 }
 
+/* --- Karten-Tiers (Größen-Presets) --- */
+
+/* XL: 1 Karte pro Zelle, riesig (1-4 Kinder gesamt) */
+.tier-xl {
+  --card-pad: 10mm;
+  --card-gap: 6mm;
+  --card-photo-size: 55mm;
+  --card-name-size: 22pt;
+  --card-name-mb: 5mm;
+  --card-facts-mb: 4mm;
+  --card-fact-size: 11pt;
+  --card-dt-size: 9pt;
+  --card-label-w: 30mm;
+  --card-memory-size: 11pt;
+  --gap: 8mm;
+}
+.tier-xl .student-card { grid-template-columns: var(--card-photo-size) 1fr; grid-template-rows: auto 1fr; gap: 6mm; }
+.tier-xl .photo-student { grid-row: span 2; }
+
+/* L: bis 8 gesamt - 2x2 pro Seite */
+.tier-l {
+  --card-pad: 6mm;
+  --card-gap: 4mm;
+  --card-photo-size: 36mm;
+  --card-name-size: 16pt;
+  --card-name-mb: 3mm;
+  --card-fact-size: 10pt;
+  --card-dt-size: 8pt;
+  --card-label-w: 24mm;
+  --card-memory-size: 10pt;
+  --gap: 5mm;
+}
+
+/* M: bis 12 gesamt - 2x3 pro Seite */
+.tier-m {
+  --card-pad: 4mm;
+  --card-photo-size: 28mm;
+  --card-name-size: 13pt;
+  --card-name-mb: 2mm;
+  --card-fact-size: 9pt;
+  --card-dt-size: 7.5pt;
+  --card-label-w: 20mm;
+  --card-memory-size: 9pt;
+  --gap: 4mm;
+}
+
+/* S: bis 18 gesamt - 3x3 pro Seite */
+.tier-s {
+  --card-pad: 3mm;
+  --card-photo-size: 22mm;
+  --card-name-size: 11pt;
+  --card-name-mb: 1.5mm;
+  --card-fact-size: 7.5pt;
+  --card-dt-size: 6.5pt;
+  --card-label-w: 16mm;
+  --card-memory-size: 7.5pt;
+  --gap: 3mm;
+}
+.tier-s .student-memory { display: none; }  /* Memory bei S zu viel */
+
+/* XS: bis 24 gesamt - 3x4 pro Seite */
+.tier-xs {
+  --card-pad: 2.5mm;
+  --card-photo-size: 18mm;
+  --card-name-size: 9.5pt;
+  --card-name-mb: 1mm;
+  --card-fact-size: 7pt;
+  --card-dt-size: 6pt;
+  --card-label-w: 13mm;
+  --gap: 2.5mm;
+}
+.tier-xs .student-memory,
+.tier-xs .student-facts > div:nth-child(3) { display: none; } /* nur Fach + Hobby */
+
+/* XXS: bis 30 - 3x5 pro Seite */
+.tier-xxs {
+  --card-pad: 2mm;
+  --card-photo-size: 15mm;
+  --card-name-size: 8.5pt;
+  --card-name-mb: 0.5mm;
+  --card-fact-size: 6.5pt;
+  --card-dt-size: 5.5pt;
+  --card-label-w: 11mm;
+  --gap: 2mm;
+}
+.tier-xxs .student-memory,
+.tier-xxs .student-facts > div:nth-child(3),
+.tier-xxs .student-facts > div:nth-child(2) { display: none; } /* nur Fach */
+
 /* =========================================================
-   SEITE 3 - ERINNERUNGEN (Bento)
+   SEITE 4 - RÜCKSEITE (Erinnerungen + Duschen + Gruß)
    ========================================================= */
+
+.back-layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 5mm;
+}
+.back-memories { grid-column: 1 / -1; grid-row: 1; min-height: 0; }
+.back-showers  { grid-column: 1; grid-row: 2; }
+.back-teacher  { grid-column: 2; grid-row: 2; }
+
+.back-block { display: flex; flex-direction: column; min-height: 0; }
+.back-block-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 12pt;
+  margin: 0 0 3mm;
+  letter-spacing: .04em;
+  color: var(--accent);
+}
 
 .memory-bento {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  grid-auto-rows: 50mm;
-  gap: 5mm;
+  grid-auto-rows: minmax(30mm, 1fr);
+  gap: 3mm;
   flex: 1;
+  min-height: 0;
 }
 .memory-card {
   border: 1px solid var(--rule);
-  border-radius: 4mm;
+  border-radius: 3mm;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--paper);
   break-inside: avoid;
   page-break-inside: avoid;
+  min-width: 0;
 }
 .photo-memory {
   margin: 0;
   flex: 1 1 auto;
-  min-height: 30mm;
+  min-height: 20mm;
   background: var(--rule-soft);
 }
 .memory-body {
-  padding: 4mm 5mm 5mm;
+  padding: 2.5mm 3mm 3mm;
   border-top: 1px solid var(--rule-soft);
 }
 .memory-title {
   font-family: var(--display);
   font-weight: 700;
-  font-size: 11pt;
-  margin: 0 0 1mm;
+  font-size: 9.5pt;
+  margin: 0 0 0.5mm;
   line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 .memory-meta {
   font-family: var(--display);
-  font-size: 7.5pt;
-  letter-spacing: .1em;
+  font-size: 6.5pt;
+  letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--accent);
-  margin: 0 0 2mm;
+  margin: 0 0 1.5mm;
 }
 .memory-text {
   margin: 0;
-  font-size: 9pt;
-  line-height: 1.4;
+  font-size: 7.5pt;
+  line-height: 1.35;
   color: var(--ink-soft);
 }
 
-/* Bento-Groessen: der erste ist gross, dann wechselnd */
-.memory-card:nth-child(6n+1) { grid-column: span 4; grid-row: span 2; }
-.memory-card:nth-child(6n+2) { grid-column: span 2; grid-row: span 2; }
-.memory-card:nth-child(6n+3) { grid-column: span 3; grid-row: span 2; }
-.memory-card:nth-child(6n+4) { grid-column: span 3; grid-row: span 2; }
-.memory-card:nth-child(6n+5) { grid-column: span 2; grid-row: span 2; }
-.memory-card:nth-child(6n+6) { grid-column: span 4; grid-row: span 2; }
-
-/* =========================================================
-   SEITE 4 - RUECKSEITE
-   ========================================================= */
-
-.back-grid {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 6mm;
-  flex: 1;
-  min-height: 0;
-}
+/* Bento-Zuweisungen (6-Spalten-Raster) */
+.memory-card:nth-child(6n+1) { grid-column: span 3; }
+.memory-card:nth-child(6n+2) { grid-column: span 3; }
+.memory-card:nth-child(6n+3) { grid-column: span 2; }
+.memory-card:nth-child(6n+4) { grid-column: span 2; }
+.memory-card:nth-child(6n+5) { grid-column: span 2; }
+.memory-card:nth-child(6n+6) { grid-column: span 6; }
 
 .shower-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 4mm;
+  grid-template-columns: 1fr;
+  gap: 2mm;
   align-content: start;
 }
 .shower-card {
   margin: 0;
   border: 1px solid var(--rule);
   border-left: 3px solid var(--accent);
-  border-radius: 3mm;
-  padding: 4mm 5mm;
+  border-radius: 2mm;
+  padding: 2.5mm 3.5mm;
   background: var(--paper);
   font-family: var(--serif);
   break-inside: avoid;
   page-break-inside: avoid;
 }
 .shower-text {
-  margin: 0 0 2mm;
-  font-size: 10pt;
-  line-height: 1.4;
+  margin: 0 0 1mm;
+  font-size: 9pt;
+  line-height: 1.35;
   font-style: italic;
   color: var(--ink);
-  quotes: "\201C" "\201D";
 }
 .shower-from {
   font-family: var(--display);
   font-weight: 600;
-  font-size: 8pt;
+  font-size: 7pt;
   letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--ink-muted);
@@ -367,46 +490,49 @@
 
 .teacher-card {
   border: 1px solid var(--rule);
-  border-radius: 4mm;
-  padding: 6mm;
-  background: var(--paper);
+  border-radius: 3mm;
+  padding: 4mm 5mm;
+  background: var(--accent-soft);
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 .teacher-card h3 {
   font-family: var(--display);
   font-weight: 800;
-  font-size: 16pt;
-  margin: 0 0 3mm;
+  font-size: 12pt;
+  margin: 0 0 2mm;
   line-height: 1.1;
 }
 .teacher-text {
   font-family: var(--serif);
-  font-size: 10pt;
-  line-height: 1.5;
+  font-size: 8.5pt;
+  line-height: 1.45;
   margin: 0;
   color: var(--ink-soft);
   flex: 1;
+  overflow: hidden;
 }
 .teacher-sign {
-  margin-top: 5mm;
+  margin-top: 3mm;
   font-family: var(--display);
   font-weight: 700;
-  font-size: 10pt;
+  font-size: 9pt;
   color: var(--accent);
-  letter-spacing: .05em;
+  letter-spacing: .04em;
 }
 
 .imprint {
-  margin-top: 4mm;
-  padding-top: 3mm;
+  margin-top: 3mm;
+  padding-top: 2mm;
   border-top: 1px solid var(--rule);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 4mm;
-  font-size: 7.5pt;
+  gap: 3mm;
+  font-size: 7pt;
   color: var(--ink-muted);
   line-height: 1.4;
+  flex-shrink: 0;
 }
 .imprint-col { display: flex; flex-direction: column; }
 .imprint-col strong {
@@ -414,7 +540,7 @@
   font-weight: 700;
   letter-spacing: .1em;
   text-transform: uppercase;
-  font-size: 7pt;
+  font-size: 6.5pt;
   color: var(--ink);
   margin-bottom: 1mm;
 }
@@ -447,16 +573,14 @@
   page-break-after: always;
   break-after: page;
 }
-.sheet-slot {
-  display: block;
-  position: relative;
-}
+.sheet-slot { display: block; position: relative; }
 .sheet-slot .page {
   box-shadow: none;
   border-radius: 0;
   page-break-after: auto;
   break-after: auto;
   margin: 0;
+  height: 297mm;
 }
 .sheet-fold {
   position: absolute;
@@ -464,6 +588,7 @@
   bottom: 0;
   left: 210mm;
   width: 0;
-  border-left: 1px dashed rgba(0,0,0,.25);
+  border-left: 1px dashed rgba(0,0,0,.2);
   pointer-events: none;
+  z-index: 1;
 }

@@ -1,66 +1,109 @@
 # Abschiedszeitung — Editor
 
-Eine minimalistische, **100 % lokal** laufende Web-App, um fuer eine 4. Klasse
+Eine minimalistische, **100 % lokal** laufende Web-App, um für eine 4. Klasse
 der Grundschule eine Abschiedszeitung zu gestalten – im A3-Format, gefaltet auf
-A4 (4 Seiten).
+A4 (4 Seiten). Der innere Doppelspread (Seiten 2 + 3) ist als US-Yearbook
+angelegt: alle Kinder auf einen Blick, wenn die Zeitung aufgeklappt wird.
 
-- Live bearbeiten (alle Texte direkt anklicken und schreiben)
-- Bilder per Klick oder Drag & Drop hochladen (werden automatisch verkleinert)
-- Steckbriefe, Erinnerungen und „Warme Duschen" beliebig hinzufuegen/entfernen
-- 5 Farbschemata (Default / Warm / Forest / Sunset / Mono)
-- Druck / PDF-Export ueber den Browser (A3 Querformat, gefaltet auf A4)
-- Projekt als JSON speichern & wieder laden
+- **Bis 30 Kinder** — das Grid skaliert automatisch (2, 4, 6, 9, 12, 15
+  pro Seite) und erzeugt nie halb-leere Seiten.
+- Live bearbeiten (alle Texte direkt anklicken und schreiben).
+- Bilder per Klick oder Drag & Drop hochladen (automatisch auf max.
+  1600 px verkleinert, damit der lokale Speicher reicht).
+- 8 sorgfältig kuratierte Farbschemata mit Vorschau-Dialog.
+- Steckbriefe, Erinnerungen und „Warme Duschen" beliebig hinzufügen /
+  entfernen.
+- Responsive Menü (Desktop + Mobile mit Overlay-Sidebar).
+- Druck / PDF-Export über den Browser (A3 Querformat, Imposition
+  automatisch).
+- Projekt als JSON speichern & wieder laden.
 
 ## Datenschutz
 
 Die App ist **DSGVO-konform** aufgebaut:
 
 - Keinerlei Backend, keine Analyse, keine Cookies.
-- Alle Inhalte (Texte & Bilder) werden ausschliesslich im `localStorage` des
-  Browsers gespeichert.
-- Einzige externe Ressource: Google Fonts (CSS-Request beim Oeffnen). Wer ganz
-  ohne externe Requests arbeiten moechte, kann die `<link>`-Zeile auf
-  Google Fonts in `index.html` entfernen — die App greift dann automatisch auf
-  System-Schriften zurueck.
-- Zum Weitergeben eines Entwurfs empfiehlt sich der JSON-Export (Button
-  „Speichern (JSON)"). Die Datei enthaelt die Bilder als Base64 — daher nur in
-  vertrauenswuerdigen Kanaelen teilen.
+- Alle Inhalte (Texte & Bilder) werden ausschließlich im `localStorage`
+  des Browsers gespeichert.
+- Einzige externe Ressource: Google Fonts (CSS-Request beim Öffnen).
+  Wer ganz ohne externe Requests arbeiten möchte, kann die
+  `<link>`-Zeile auf Google Fonts in `index.html` entfernen — die App
+  greift dann auf System-Schriften zurück.
+- Der JSON-Export enthält Bilder als Base64 → nur in vertrauenswürdigen
+  Kanälen teilen.
 
-Fuer das Einholen der Einwilligung der Erziehungsberechtigten vor dem Druck
-sollten alle abgebildeten Kinder/Personen vorher eine schriftliche Zustimmung
-gegeben haben.
+Für die Einwilligung der Erziehungsberechtigten vor dem Druck sollten
+alle abgebildeten Kinder vorher eine schriftliche Zustimmung gegeben
+haben.
 
 ## Nutzung
 
-1. `index.html` im Browser oeffnen (Doppelklick reicht — kein Server noetig).
+1. `index.html` im Browser öffnen (Doppelklick reicht — kein Server nötig).
 2. Texte direkt anklicken und bearbeiten.
 3. Bild-Platzhalter anklicken oder Bild darauf ziehen.
-4. Ueber die Seitenleiste weitere Steckbriefe/Erinnerungen/Zitate hinzufuegen.
-5. Mit „Speichern (JSON)" regelmaessig sichern.
-6. Oben rechts „Drucken / PDF" - im Druckdialog A3 Querformat, Raender: Keine.
+4. In der Sidebar weitere Steckbriefe / Erinnerungen / Zitate anlegen.
+5. `Strg+S` (oder Menü ⋮ → „Als JSON speichern") regelmäßig sichern.
+6. Oben rechts „Drucken / PDF" → im Druckdialog **A3 Querformat** und
+   **Ränder: Keine** wählen.
 
-## Druck / Imposition
+### Tastatur-Kürzel
 
-Die Zeitung besteht aus zwei A3-Boegen:
+| Taste          | Wirkung                                  |
+|----------------|------------------------------------------|
+| `Strg + S`     | JSON exportieren                         |
+| `Strg + P`     | Drucken / PDF                            |
+| `Strg + Z`     | Letzte Texteingabe rückgängig (Browser)  |
+| `Esc`          | Dialog / Menü / Sidebar schließen        |
 
-- **Bogen 1 (aussen):** links Seite 4 (Rueckseite), rechts Seite 1 (Titel)
-- **Bogen 2 (innen):** links Seite 2, rechts Seite 3
+## Seiten-Layout
 
-Nach dem Falten in der Mitte ergibt sich die korrekte Lesereihenfolge.
+```
+A3-Bogen flach:          Nach Falten (A4):
+┌─────────┬─────────┐    ┌─────────┐
+│ Seite 4 │ Seite 1 │    │ Seite 1 │  ← Titel
+│ außen L │ außen R │    └─────────┘
+└─────────┴─────────┘    ┌─────────┐
+┌─────────┬─────────┐    │ Seite 2 │
+│ Seite 2 │ Seite 3 │    │ Seite 3 │  ← Jahrbuch-Spread
+│ innen L │ innen R │    └─────────┘
+└─────────┴─────────┘    ┌─────────┐
+                         │ Seite 4 │  ← Rückseite
+                         └─────────┘
+```
+
+**Wichtig:** Seiten 2 + 3 sind gemeinsam der Jahrbuch-Spread. Alle
+Kinder werden gleichmäßig auf beide Seiten verteilt — wenn man die
+A3-Zeitung aufklappt, sieht man sie alle nebeneinander.
+
+### Automatische Grid-Skalierung
+
+| Gesamt  | pro Seite | Spalten × Reihen | Karten-Stil |
+|---------|-----------|------------------|-------------|
+| 1–4     | 2         | 1 × 2            | XL          |
+| 5–8     | 4         | 2 × 2            | L           |
+| 9–12    | 6         | 2 × 3            | M           |
+| 13–18   | 9         | 3 × 3            | S           |
+| 19–24   | 12        | 3 × 4            | XS          |
+| 25–30   | 15        | 3 × 5            | XXS         |
+
+Bei dichteren Tiers werden automatisch sekundäre Felder
+(Erinnerung / Beruf / Hobby) ausgeblendet, damit die Karten trotz
+30 Kindern lesbar bleiben.
 
 ## Technik
 
 - Statische Seite (HTML/CSS/Vanilla JS), keine Build-Tools.
-- CSS Paged Media (`@page { size: A3 landscape; }`) fuer den exakten Druck.
-- Bilder werden beim Upload auf max. 1600 px skaliert (JPEG Q=0.85), um den
-  Browser-Speicher nicht zu sprengen.
+- CSS Paged Media (`@page { size: A3 landscape; }`) für den exakten Druck.
+- Bilder werden beim Upload auf max. 1600 px skaliert (JPEG Q=0.85).
+- Native `<dialog>` für Farbwähler und Hilfe.
 
 ## Datei-Struktur
 
 ```
 index.html         # UI + Seiten-Templates
-css/app.css        # Toolbar, Sidebar, Editor-Chrome
-css/newspaper.css  # Seitenlayout (Benno-Style / Bento-Grid)
-css/print.css      # @page-Regeln fuer den Druck
-js/app.js          # Editor-Logik + localStorage
+CLAUDE.md          # Architektur-Notiz für Weiterentwickler
+css/app.css        # Toolbar, Sidebar, Modal, Toast (nur Bildschirm)
+css/newspaper.css  # Seitenlayout, Karten-Tiers, Themes
+css/print.css      # @page + Druck-spezifische Regeln
+js/app.js          # Editor-Logik, State, localStorage, Druck-Mirror
 ```
