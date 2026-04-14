@@ -18,7 +18,11 @@
   .no-print,
   .toolbar,
   .sidebar,
-  .print-info { display: none !important; }
+  .sidebar-backdrop,
+  .print-info,
+  .toast,
+  dialog,
+  dialog[open] { display: none !important; }
 
   .workspace {
     padding: 0 !important;
