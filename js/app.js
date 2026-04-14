@@ -85,6 +85,9 @@
         hero: null,   // Seite 1 Klassenfoto
         intro: null   // Seite 2 Grußwort-Foto
       },
+      // Bild-Positions-Overrides: photoKey → { x: 0..100, y: 0..100 }
+      // Werden beim Rendern auf img.style.objectPosition gesetzt.
+      photoOffsets: {},
       students: seedStudents(),
       memories: seedMemories(),
       showers: seedShowers()
@@ -156,6 +159,7 @@
     if (!Array.isArray(loaded.showers))  loaded.showers  = d.showers;
     if (!loaded.photos || typeof loaded.photos !== 'object') loaded.photos = { hero: null, intro: null };
     if (loaded.photos.intro === undefined) loaded.photos.intro = null;
+    if (!loaded.photoOffsets || typeof loaded.photoOffsets !== 'object') loaded.photoOffsets = {};
     if (!loaded.fields || typeof loaded.fields !== 'object') loaded.fields = {};
 
     const f = loaded.fields;
@@ -406,10 +410,22 @@
       const img = document.createElement('img');
       img.alt = '';
       img.src = dataUrl;
+      img.draggable = false; // Browser-Drag-Ghost unterdrücken
+      applyPhotoOffset(img, photoEl.dataset.photo);
       photoEl.insertBefore(img, photoEl.firstChild);
       photoEl.classList.add('has-image');
     } else {
       photoEl.classList.remove('has-image');
+    }
+  }
+
+  function applyPhotoOffset(img, photoKey) {
+    if (!img || !photoKey) return;
+    const off = state.photoOffsets && state.photoOffsets[photoKey];
+    if (off && typeof off.x === 'number' && typeof off.y === 'number') {
+      img.style.objectPosition = off.x + '% ' + off.y + '%';
+    } else {
+      img.style.objectPosition = '50% 50%';
     }
   }
 
@@ -465,10 +481,16 @@
     schedulePrintMirror();
   });
 
-  // Foto-Klick -> Dateiauswahl
+  // Foto-Klick -> Dateiauswahl (außer auf einem Kontroll-Button)
   workspace.addEventListener('click', (e) => {
     const photo = e.target.closest('.photo');
-    if (!photo || e.target.closest('.photo-remove')) return;
+    if (!photo) return;
+    if (e.target.closest('.photo-remove, .photo-pan')) return;
+    // Nach dem Repositionieren schluckt die Drag-Logik den Folge-Click.
+    if (photo.dataset.suppressClick === '1') {
+      delete photo.dataset.suppressClick;
+      return;
+    }
     const input = photo.querySelector('input[type="file"]');
     if (input) input.click();
   });
@@ -480,8 +502,81 @@
     e.stopPropagation();
     const photo = btn.closest('.photo');
     setPhoto(photo.dataset.photo, null);
+    // Offset beim Entfernen mitlöschen
+    if (state.photoOffsets && photo.dataset.photo in state.photoOffsets) {
+      delete state.photoOffsets[photo.dataset.photo];
+    }
     render();
   });
+
+  // ---------- Bild-Ausschnitt verschieben (Pan) ----------
+  //
+  // Pan-Button gedrückt halten -> Drag verschiebt object-position.
+  // Loslassen speichert; keine Seiten-Scroll-Konflikte (pointer events).
+
+  workspace.addEventListener('pointerdown', (e) => {
+    const pan = e.target.closest('.photo-pan');
+    if (!pan) return;
+    const photo = pan.closest('.photo');
+    if (!photo || !photo.classList.contains('has-image')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    startReposition(photo, e);
+  });
+
+  function startReposition(photo, startEvent) {
+    const img = photo.querySelector('img');
+    if (!img) return;
+    const key = photo.dataset.photo;
+    const rect = photo.getBoundingClientRect();
+    const current = (state.photoOffsets && state.photoOffsets[key]) || { x: 50, y: 50 };
+    const startX = startEvent.clientX;
+    const startY = startEvent.clientY;
+    const startPos = { x: current.x, y: current.y };
+    let moved = false;
+
+    photo.classList.add('repositioning');
+    // pointer capture sorgt dafür, dass alle Folge-Events ans Pan-Button gehen
+    const btn = startEvent.target;
+    if (btn.setPointerCapture && startEvent.pointerId !== undefined) {
+      try { btn.setPointerCapture(startEvent.pointerId); } catch (_) {}
+    }
+
+    function onMove(ev) {
+      moved = true;
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      // Bewegung invers zur Bildbewegung: wenn man nach rechts zieht,
+      // soll der sichtbare Ausschnitt nach rechts wandern → object-position x erhöht sich.
+      const xPct = clamp(startPos.x + (dx / Math.max(1, rect.width))  * 100, 0, 100);
+      const yPct = clamp(startPos.y + (dy / Math.max(1, rect.height)) * 100, 0, 100);
+      img.style.objectPosition = xPct + '% ' + yPct + '%';
+      photo._tempOffset = { x: xPct, y: yPct };
+    }
+    function onUp() {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onUp);
+      photo.classList.remove('repositioning');
+      if (moved && photo._tempOffset) {
+        if (!state.photoOffsets) state.photoOffsets = {};
+        state.photoOffsets[key] = photo._tempOffset;
+        delete photo._tempOffset;
+        saveState();
+        // Druck-Layout-Spiegel aktualisieren (neue inline styles)
+        schedulePrintMirror();
+        // Folge-Click auf das Foto unterdrücken, damit nicht der Datei-
+        // Picker aufploppt
+        photo.dataset.suppressClick = '1';
+      }
+    }
+
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onUp);
+  }
+
+  function clamp(n, lo, hi) { return n < lo ? lo : (n > hi ? hi : n); }
 
   // Datei-Input change
   workspace.addEventListener('change', (e) => {

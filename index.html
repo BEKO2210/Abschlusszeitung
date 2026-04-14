@@ -103,6 +103,7 @@
             <span>Klassenfoto hier ablegen oder anklicken</span>
           </div>
           <input type="file" accept="image/*" hidden />
+          <button type="button" class="photo-pan no-print" title="Bildausschnitt verschieben (halten und ziehen)" aria-label="Bildausschnitt verschieben">&#10021;</button>
           <button type="button" class="photo-remove no-print" title="Bild entfernen" aria-label="Bild entfernen">&times;</button>
         </figure>
       </div>
@@ -135,6 +136,7 @@
       <figure class="photo photo-intro" data-photo="intro">
         <div class="photo-placeholder"><span>Foto der Klasse, Schule oder Lehrerin</span></div>
         <input type="file" accept="image/*" hidden />
+        <button type="button" class="photo-pan no-print" title="Bildausschnitt verschieben" aria-label="Bildausschnitt verschieben">&#10021;</button>
         <button type="button" class="photo-remove no-print" aria-label="Bild entfernen">&times;</button>
       </figure>
 
@@ -319,8 +321,9 @@ Behaltet die Neugier, den Mut und die Freundschaften, die ihr hier gefunden habt
     <h3>Tipps</h3>
     <ul class="tips">
       <li>Fotos per Drag &amp; Drop auf jeden Platzhalter ziehen.</li>
-      <li>Steckbriefe können durch Ziehen auf den <em>X</em>-Knopf entfernt werden.</li>
-      <li>Vor dem Drucken im Browser <em>A3 Querformat</em> und <em>Ränder: Keine</em> einstellen.</li>
+      <li><strong>Bildausschnitt anpassen:</strong> Den kleinen <em>&#10021;</em>-Knopf am Bild greifen und ziehen. Die Position wird gespeichert und mitgedruckt.</li>
+      <li>Steckbriefe werden per <em>×</em>-Knopf (rechts oben an der Karte) entfernt.</li>
+      <li>Vor dem Drucken im Browser <em>A3 Querformat</em>, <em>beidseitig</em> und <em>Ränder: Keine</em> einstellen.</li>
       <li>Sichere dein Projekt regelmäßig über <em>Als JSON speichern</em>.</li>
     </ul>
     <footer class="modal-footer">
@@ -338,6 +341,7 @@ Behaltet die Neugier, den Mut und die Freundschaften, die ihr hier gefunden habt
     <figure class="photo photo-student" data-photo="">
       <div class="photo-placeholder"><span>Foto</span></div>
       <input type="file" accept="image/*" hidden />
+      <button type="button" class="photo-pan no-print" title="Bildausschnitt verschieben" aria-label="Bildausschnitt verschieben">&#10021;</button>
       <button type="button" class="photo-remove no-print" aria-label="Bild entfernen">&times;</button>
     </figure>
     <div class="student-body">
@@ -358,6 +362,7 @@ Behaltet die Neugier, den Mut und die Freundschaften, die ihr hier gefunden habt
     <figure class="photo photo-memory" data-photo="">
       <div class="photo-placeholder"><span>Bild</span></div>
       <input type="file" accept="image/*" hidden />
+      <button type="button" class="photo-pan no-print" title="Bildausschnitt verschieben" aria-label="Bildausschnitt verschieben">&#10021;</button>
       <button type="button" class="photo-remove no-print" aria-label="Bild entfernen">&times;</button>
     </figure>
     <div class="memory-body">

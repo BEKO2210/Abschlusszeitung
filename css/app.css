@@ -375,22 +375,33 @@ button.icon-btn {
     repeating-linear-gradient(45deg, #f1f1ee 0 10px, #e8e8e5 10px 20px);
 }
 .photo.has-image .photo-placeholder { display: none; }
-.photo-remove {
+.photo-remove,
+.photo-pan {
   position: absolute;
   top: 4px;
-  right: 4px;
-  width: 20px;
-  height: 20px;
-  line-height: 16px;
+  width: 22px;
+  height: 22px;
+  line-height: 18px;
   padding: 0;
-  font-size: 14px;
+  font-size: 12px;
   border-radius: 50%;
-  background: rgba(255,255,255,.92);
+  background: rgba(255,255,255,.94);
   border: 1px solid var(--ui-border);
   display: none;
   z-index: 2;
+  box-shadow: 0 1px 2px rgba(0,0,0,.1);
 }
-.photo.has-image .photo-remove { display: block; }
+.photo-remove { right: 4px; color: var(--ui-danger); }
+.photo-pan    { left: 4px; font-size: 13px; }
+.photo.has-image .photo-remove,
+.photo.has-image .photo-pan { display: block; }
+.photo-pan:hover { background: #fff; }
+.photo-pan:active,
+.photo.repositioning .photo-pan { background: var(--ui-accent); color: #fff; border-color: var(--ui-accent); }
+
+.photo.repositioning { cursor: grabbing; }
+.photo.repositioning img { user-select: none; -webkit-user-drag: none; pointer-events: none; }
+.photo img { user-select: none; -webkit-user-drag: none; }
 
 /* ---------- Modal (native <dialog>) ---------- */
 
