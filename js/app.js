@@ -124,18 +124,8 @@
     // Hero photo
     applyPhoto(document.querySelector('.photo[data-photo="hero"]'), state.photos.hero);
 
-    // Students
-    renderList('student-grid', 'tpl-student', state.students, (root, item) => {
-      root.dataset.studentId = item.id;
-      setField(root, 'name', item.name);
-      setField(root, 'fach', item.fach);
-      setField(root, 'hobby', item.hobby);
-      setField(root, 'beruf', item.beruf);
-      setField(root, 'memory', item.memory);
-      const photoEl = root.querySelector('.photo');
-      photoEl.dataset.photo = 'student:' + item.id;
-      applyPhoto(photoEl, item.photo);
-    });
+    // Students auf zwei Seiten splitten (Yearbook-Spread)
+    renderStudentSpread();
 
     // Memories
     renderList('memory-bento', 'tpl-memory', state.memories, (root, item) => {
@@ -155,8 +145,99 @@
       setField(root, 'from', item.from);
     });
 
+    // Zähler in Sidebar
+    updateCounters();
+
     // Print-Mirror aktualisieren
     mirrorPrintLayout();
+  }
+
+  // ---------- Yearbook-Spread Rendering ----------
+
+  /**
+   * Berechnet die optimale Grid-Aufteilung für den Spread.
+   * Ziel: keine halb-leeren Seiten, ausgewogene Spalten x Reihen,
+   * bis 30 Kinder insgesamt.
+   */
+  function computeSpreadLayout(totalCount) {
+    // Minimum: immer mindestens 2 Karten pro Seite zeigen, auch wenn leer
+    const visualCount = Math.max(totalCount, 2);
+
+    // Aufteilung: linke Seite = ceil(n/2), rechte = floor(n/2)
+    const leftCount  = Math.ceil(visualCount / 2);
+    const rightCount = Math.floor(visualCount / 2);
+
+    // Tier (beide Seiten nutzen dasselbe Tier, damit die Optik gleich ist)
+    // Richtgröße: größere Hälfte bestimmt das Tier.
+    const perPage = leftCount;
+
+    let tier, cols, rows;
+    if (perPage <= 2)      { tier = 'tier-xl';  cols = 1; rows = 2; }
+    else if (perPage <= 4) { tier = 'tier-l';   cols = 2; rows = 2; }
+    else if (perPage <= 6) { tier = 'tier-m';   cols = 2; rows = 3; }
+    else if (perPage <= 9) { tier = 'tier-s';   cols = 3; rows = 3; }
+    else if (perPage <= 12){ tier = 'tier-xs';  cols = 3; rows = 4; }
+    else                   { tier = 'tier-xxs'; cols = 3; rows = 5; }
+
+    return { tier, cols, rows, leftCount, rightCount };
+  }
+
+  function renderStudentSpread() {
+    const leftEl  = document.getElementById('student-grid-left');
+    const rightEl = document.getElementById('student-grid-right');
+    if (!leftEl || !rightEl) return;
+
+    const total = state.students.length;
+    const layout = computeSpreadLayout(total);
+
+    // Tier-Klassen am SEITEN-Container (damit Tier-Selektoren greifen)
+    const page2 = document.getElementById('page-2');
+    const page3 = document.getElementById('page-3');
+    ['tier-xl', 'tier-l', 'tier-m', 'tier-s', 'tier-xs', 'tier-xxs'].forEach(c => {
+      page2.classList.remove(c);
+      page3.classList.remove(c);
+    });
+    page2.classList.add(layout.tier);
+    page3.classList.add(layout.tier);
+
+    // Grid-Dimensionen via CSS-Variablen
+    [leftEl, rightEl].forEach(el => {
+      el.style.setProperty('--cols', layout.cols);
+      el.style.setProperty('--rows', layout.rows);
+    });
+
+    // Liste splitten
+    const half = Math.ceil(total / 2);
+    const leftList  = state.students.slice(0, half);
+    const rightList = state.students.slice(half);
+
+    fillStudentGrid(leftEl,  leftList);
+    fillStudentGrid(rightEl, rightList);
+  }
+
+  function fillStudentGrid(container, list) {
+    const tpl = document.getElementById('tpl-student');
+    container.innerHTML = '';
+    list.forEach(item => {
+      const clone = tpl.content.firstElementChild.cloneNode(true);
+      clone.dataset.studentId = item.id;
+      setField(clone, 'name', item.name);
+      setField(clone, 'fach', item.fach);
+      setField(clone, 'hobby', item.hobby);
+      setField(clone, 'beruf', item.beruf);
+      setField(clone, 'memory', item.memory);
+      const photoEl = clone.querySelector('.photo');
+      photoEl.dataset.photo = 'student:' + item.id;
+      applyPhoto(photoEl, item.photo);
+      container.appendChild(clone);
+    });
+  }
+
+  function updateCounters() {
+    const set = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n; };
+    set('count-students', state.students.length);
+    set('count-memories', state.memories.length);
+    set('count-showers',  state.showers.length);
   }
 
   function setField(root, name, value) {
