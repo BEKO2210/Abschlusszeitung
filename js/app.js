@@ -9,7 +9,20 @@
   // ---------- State / Storage ----------
 
   const STORAGE_KEY = 'abschiedszeitung:v1';
-  const THEMES = ['default', 'warm', 'forest', 'sunset', 'mono'];
+
+  // Sorgfältig kuratierte Farbschemata. Jede Variante ist druckfreundlich
+  // (ausreichender Kontrast auf weißem/cremefarbenem Papier, keine Neons).
+  const THEMES = [
+    { id: 'default', name: 'Klassisch Blau',  desc: 'Zeitloses Schulblau',       accent: '#0055a4', paper: '#ffffff' },
+    { id: 'forest',  name: 'Waldgrün',        desc: 'Ruhig, erdend',             accent: '#2f6a4f', paper: '#ffffff' },
+    { id: 'ocean',   name: 'Ozean',           desc: 'Petrol, frisch',            accent: '#2a7a8a', paper: '#ffffff' },
+    { id: 'plum',    name: 'Pflaume',         desc: 'Warm, elegant',             accent: '#6b4a7a', paper: '#ffffff' },
+    { id: 'rose',    name: 'Rosenholz',       desc: 'Weich, freundlich',         accent: '#b85672', paper: '#ffffff' },
+    { id: 'sunset',  name: 'Sonnenuntergang', desc: 'Energisch, herzlich',       accent: '#d0492e', paper: '#ffffff' },
+    { id: 'warm',    name: 'Terrakotta',      desc: 'Ocker auf cremefarben',     accent: '#b2542b', paper: '#faf7f1' },
+    { id: 'mono',    name: 'Monochrom',       desc: 'Reduzierter Graustil',      accent: '#1a1a1a', paper: '#ffffff' }
+  ];
+  const THEME_IDS = THEMES.map(t => t.id);
 
   /** @type {any} */
   let state = loadState() || defaultState();
@@ -442,104 +455,274 @@
     });
   }
 
-  // ---------- Toolbar / Sidebar-Aktionen ----------
+  // ---------- UI: Toast, Modals, Menü, Sidebar ----------
+
+  function toast(msg, ms) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = false;
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { el.hidden = true; }, ms || 2200);
+  }
+
+  function on(id, evt, handler) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(evt, handler);
+  }
+
+  // ---------- View-Umschalter ----------
 
   document.querySelectorAll('.view-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view-toggle').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
       btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
       workspace.dataset.view = btn.dataset.view;
       if (btn.dataset.view === 'print-layout') mirrorPrintLayout();
     });
   });
 
-  document.getElementById('btn-print').addEventListener('click', () => {
-    // Immer das Druck-Layout drucken - Mirror aktualisieren
+  // ---------- Drucken ----------
+
+  on('btn-print', 'click', () => {
     mirrorPrintLayout();
     setTimeout(() => window.print(), 50);
   });
 
-  document.getElementById('btn-theme').addEventListener('click', () => {
-    const i = THEMES.indexOf(state.theme || 'default');
-    state.theme = THEMES[(i + 1) % THEMES.length];
-    saveState();
-    render();
+  // ---------- Overflow-Menü (Kebab) ----------
+
+  const moreBtn = document.getElementById('btn-more');
+  const moreMenu = document.getElementById('more-menu');
+  function setMenuOpen(open) {
+    if (!moreMenu || !moreBtn) return;
+    moreMenu.hidden = !open;
+    moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  if (moreBtn && moreMenu) {
+    moreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setMenuOpen(moreMenu.hidden);
+    });
+    document.addEventListener('click', (e) => {
+      if (!moreMenu.hidden && !moreMenu.contains(e.target) && e.target !== moreBtn) {
+        setMenuOpen(false);
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    });
+    // Klick auf Menü-Eintrag schließt das Menü
+    moreMenu.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') setMenuOpen(false);
+    });
+  }
+
+  // ---------- Theme-Modal ----------
+
+  const themeModal = document.getElementById('theme-modal');
+  const themeGrid = document.getElementById('theme-grid');
+  let pendingTheme = null;
+
+  function buildThemeGrid() {
+    if (!themeGrid) return;
+    themeGrid.innerHTML = '';
+    THEMES.forEach(t => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'theme-card' + (t.id === (pendingTheme || state.theme) ? ' selected' : '');
+      card.dataset.theme = t.id;
+      card.style.setProperty('--tc-accent', t.accent);
+      card.style.setProperty('--tc-paper', t.paper);
+      card.innerHTML =
+        '<div class="theme-card-preview" aria-hidden="true"></div>' +
+        '<div class="theme-card-name"></div>' +
+        '<div class="theme-card-desc"></div>';
+      card.querySelector('.theme-card-name').textContent = t.name;
+      card.querySelector('.theme-card-desc').textContent = t.desc;
+      card.addEventListener('click', () => {
+        pendingTheme = t.id;
+        // Live-Vorschau
+        document.documentElement.setAttribute('data-theme', t.id);
+        themeGrid.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      });
+      themeGrid.appendChild(card);
+    });
+  }
+
+  on('btn-theme', 'click', () => {
+    if (!themeModal) return;
+    pendingTheme = state.theme;
+    buildThemeGrid();
+    if (typeof themeModal.showModal === 'function') {
+      themeModal.showModal();
+    } else {
+      themeModal.setAttribute('open', '');
+    }
   });
 
-  document.getElementById('btn-export').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'abschiedszeitung-' + new Date().toISOString().slice(0, 10) + '.json';
-    a.click();
-    URL.revokeObjectURL(url);
+  if (themeModal) {
+    themeModal.addEventListener('close', () => {
+      if (themeModal.returnValue === 'apply' && pendingTheme) {
+        state.theme = pendingTheme;
+        saveState();
+        toast('Farbschema übernommen');
+      } else {
+        // Zurück auf gespeichertes Theme
+        document.documentElement.setAttribute('data-theme', state.theme || 'default');
+      }
+      pendingTheme = null;
+      render();
+    });
+  }
+
+  // ---------- Hilfe-Dialog ----------
+
+  const helpModal = document.getElementById('help-modal');
+  on('btn-help', 'click', () => {
+    if (helpModal && typeof helpModal.showModal === 'function') helpModal.showModal();
   });
 
-  document.getElementById('btn-import').addEventListener('click', () => {
-    document.getElementById('file-import').click();
+  // ---------- Export / Import / Reset ----------
+
+  on('btn-export', 'click', () => {
+    try {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'abschiedszeitung-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast('Projekt als JSON gespeichert');
+    } catch (e) {
+      alert('Export fehlgeschlagen: ' + e.message);
+    }
   });
-  document.getElementById('file-import').addEventListener('change', (e) => {
-    const file = e.target.files[0];
+
+  on('btn-import', 'click', () => {
+    const input = document.getElementById('file-import');
+    if (input) input.click();
+  });
+  on('file-import', 'change', (e) => {
+    const file = e.target.files && e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
+    reader.onerror = () => alert('Datei konnte nicht gelesen werden.');
     reader.onload = () => {
       try {
         const loaded = JSON.parse(reader.result);
-        if (!loaded || typeof loaded !== 'object') throw new Error('invalid');
+        if (!loaded || typeof loaded !== 'object') throw new Error('Ungültiges Format');
+        if (!Array.isArray(loaded.students)) throw new Error('Liste der Mitschüler fehlt');
+        if (!Array.isArray(loaded.memories)) loaded.memories = [];
+        if (!Array.isArray(loaded.showers))  loaded.showers  = [];
+        if (!loaded.fields || typeof loaded.fields !== 'object') loaded.fields = {};
+        if (!loaded.photos || typeof loaded.photos !== 'object') loaded.photos = { hero: null };
         state = loaded;
         saveState();
         render();
+        toast('Projekt geladen');
       } catch (err) {
-        alert('Diese Datei konnte nicht geladen werden.');
+        alert('Diese Datei konnte nicht geladen werden:\n' + err.message);
       }
     };
     reader.readAsText(file);
     e.target.value = '';
   });
 
-  document.getElementById('btn-reset').addEventListener('click', () => {
-    if (!confirm('Alle Inhalte und Bilder wirklich loeschen und mit Beispiel neu starten?')) return;
+  on('btn-reset', 'click', () => {
+    if (!confirm('Wirklich alle Inhalte und Bilder löschen und mit Beispiel-Zeitung neu starten?')) return;
     localStorage.removeItem(STORAGE_KEY);
     state = defaultState();
     saveState();
     render();
+    toast('Zurückgesetzt');
   });
 
-  document.getElementById('add-student').addEventListener('click', () => {
+  // ---------- Hinzufügen ----------
+
+  on('add-student', 'click', () => {
+    if (state.students.length >= 30) {
+      toast('Maximal 30 Mitschüler:innen (Platz auf dem Spread)');
+      return;
+    }
     state.students.push({
       id: uid(),
       name: 'Neuer Steckbrief',
       fach: '',
       hobby: '',
       beruf: '',
-      memory: 'Meine schoenste Erinnerung: ...',
+      memory: 'Meine schönste Erinnerung: …',
       photo: null
     });
     saveState();
     render();
   });
 
-  document.getElementById('add-memory').addEventListener('click', () => {
+  on('add-memory', 'click', () => {
     state.memories.push({
       id: uid(),
       title: 'Neue Erinnerung',
-      meta: 'Ort / Jahr',
-      text: 'Kurzer Text ...',
+      meta: 'Ort · Jahr',
+      text: 'Kurzer Text …',
       photo: null
     });
     saveState();
     render();
   });
 
-  document.getElementById('add-shower').addEventListener('click', () => {
+  on('add-shower', 'click', () => {
     state.showers.push({
       id: uid(),
-      text: '„Neues Zitat ...“',
+      text: '„Neues Zitat …"',
       from: '— von'
     });
     saveState();
     render();
+  });
+
+  // ---------- Mobile-Sidebar ----------
+
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  function setSidebarOpen(open) {
+    if (!sidebar || !backdrop) return;
+    sidebar.classList.toggle('open', open);
+    backdrop.hidden = !open;
+  }
+  on('btn-sidebar', 'click', () => setSidebarOpen(!sidebar.classList.contains('open')));
+  if (backdrop) backdrop.addEventListener('click', () => setSidebarOpen(false));
+  if (sidebar) {
+    sidebar.addEventListener('click', (e) => {
+      if (e.target.matches('.sidebar-close')) setSidebarOpen(false);
+      if (e.target.matches('nav a')) setSidebarOpen(false);
+    });
+  }
+
+  // ---------- Tastatur-Shortcuts ----------
+
+  document.addEventListener('keydown', (e) => {
+    // Editor-Inputs nicht stören
+    const inEditable = e.target && e.target.isContentEditable;
+
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && !inEditable) {
+      e.preventDefault();
+      document.getElementById('btn-export')?.click();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+      e.preventDefault();
+      document.getElementById('btn-print')?.click();
+    }
+    if (e.key === 'Escape') {
+      setMenuOpen(false);
+      setSidebarOpen(false);
+    }
   });
 
   // Print-Mirror debouncen
