@@ -428,9 +428,17 @@
     const file = input.files && input.files[0];
     if (!file) return;
     const photo = input.closest('.photo');
+    if (!file.type.startsWith('image/')) {
+      toast('Nur Bild-Dateien (JPG, PNG, WebP).');
+      input.value = '';
+      return;
+    }
     readFileAsResizedDataURL(file, 1600, 0.85).then(dataUrl => {
       setPhoto(photo.dataset.photo, dataUrl);
       render();
+    }).catch(err => {
+      toast('Bild konnte nicht geladen werden.');
+      console.warn('Upload-Fehler:', err);
     });
     input.value = '';
   });
@@ -452,10 +460,17 @@
     e.preventDefault();
     photo.classList.remove('drop-hover');
     const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (!file || !file.type.startsWith('image/')) return;
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast('Nur Bild-Dateien (JPG, PNG, WebP).');
+      return;
+    }
     readFileAsResizedDataURL(file, 1600, 0.85).then(dataUrl => {
       setPhoto(photo.dataset.photo, dataUrl);
       render();
+    }).catch(err => {
+      toast('Bild konnte nicht geladen werden.');
+      console.warn('Drop-Fehler:', err);
     });
   });
 
