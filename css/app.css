@@ -267,6 +267,7 @@ button.icon-btn {
   text-transform: none;
 }
 .sidebar-section button { width: 100%; }
+.btn-stack { display: flex; flex-direction: column; gap: 6px; }
 .hint {
   font-size: 11px;
   color: var(--ui-muted);

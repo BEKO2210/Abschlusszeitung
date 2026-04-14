@@ -353,6 +353,13 @@
 }
 .tier-xs .student-memory,
 .tier-xs .student-facts > div:nth-child(3) { display: none; } /* nur Fach + Hobby */
+.tier-xs .photo-pan, .tier-xs .photo-remove,
+.tier-xxs .photo-pan, .tier-xxs .photo-remove {
+  width: 16px; height: 16px; font-size: 10px; line-height: 14px;
+  top: 2px;
+}
+.tier-xs .photo-pan,
+.tier-xxs .photo-pan { display: none !important; } /* Karte zu klein zum Pannen */
 
 /* XXS: bis 30 - 3x5 pro Seite */
 .tier-xxs {

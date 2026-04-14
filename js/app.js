@@ -886,44 +886,94 @@
 
   // ---------- Hinzufügen ----------
 
+  /**
+   * Fügt ein Item hinzu und setzt nach dem Re-Render Cursor + Scroll
+   * auf das entsprechende Feld, damit der User sofort tippen kann.
+   */
+  function addAndFocus(item, listKey, focusField, insertAt) {
+    const list = state[listKey];
+    const pos = typeof insertAt === 'number' ? insertAt : list.length;
+    list.splice(pos, 0, item);
+    saveState();
+    render();
+
+    // Neues Element suchen und fokussieren
+    const dataKey =
+      listKey === 'students' ? 'studentId' :
+      listKey === 'memories' ? 'memoryId'  :
+      listKey === 'showers'  ? 'showerId'  : null;
+    if (!dataKey) return;
+    // requestAnimationFrame um sicher nach dem Paint zu sein
+    requestAnimationFrame(() => {
+      const card = document.querySelector('[data-' + dataKey.replace(/([A-Z])/g, '-$1').toLowerCase() + '="' + item.id + '"]');
+      if (!card) return;
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const focusEl = card.querySelector('[data-field="' + focusField + '"]');
+      if (focusEl && focusEl.isContentEditable !== false) {
+        setTimeout(() => {
+          focusEl.focus();
+          // Gesamten Text markieren, damit man sofort überschreiben kann
+          const range = document.createRange();
+          range.selectNodeContents(focusEl);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }, 250);
+      }
+    });
+  }
+
   on('add-student', 'click', () => {
     if (state.students.length >= 30) {
       toast('Maximal 30 Mitschüler:innen (Platz auf dem Spread)');
       return;
     }
-    state.students.push({
+    addAndFocus({
       id: uid(),
-      name: 'Neuer Steckbrief',
+      name: 'Name eingeben',
       fach: '',
       hobby: '',
       beruf: '',
-      memory: 'Meine schönste Erinnerung: …',
+      memory: '',
       photo: null
-    });
-    saveState();
-    render();
+    }, 'students', 'name');
   });
 
-  on('add-memory', 'click', () => {
-    state.memories.push({
+  /**
+   * addMemory(half): 'first' fügt am Ende der 1. Hälfte (= Chronik I) ein,
+   * 'second' ans Ende der Liste (= Chronik II). Der Split in renderMemories
+   * ist ceil(n/2) — deshalb für 'first' an Position ceil(n/2) einfügen, damit
+   * es noch in die erste Hälfte fällt.
+   */
+  function addMemory(half) {
+    const item = {
       id: uid(),
       title: 'Neue Erinnerung',
       meta: 'Ort · Jahr',
-      text: 'Kurzer Text …',
+      text: '',
       photo: null
-    });
-    saveState();
-    render();
-  });
+    };
+    const total = state.memories.length;
+    if (half === 'first') {
+      // Einfügen an Position, die nach dem erneuten Split noch auf Seite 1 landet.
+      // Split: half = ceil((n+1)/2). Wir fügen an half-1 ein, nachdem sich die
+      // Liste um 1 verlängert — an Position ceil((total+1)/2)-1.
+      const pos = Math.ceil((total + 1) / 2) - 1;
+      addAndFocus(item, 'memories', 'title', Math.max(0, pos));
+    } else {
+      addAndFocus(item, 'memories', 'title'); // ans Ende
+    }
+  }
+
+  on('add-memory-1', 'click', () => addMemory('first'));
+  on('add-memory-2', 'click', () => addMemory('second'));
 
   on('add-shower', 'click', () => {
-    state.showers.push({
+    addAndFocus({
       id: uid(),
-      text: '„Neues Zitat …"',
+      text: 'Kurzes, liebes Zitat …',
       from: '— von'
-    });
-    saveState();
-    render();
+    }, 'showers', 'text');
   });
 
   // ---------- Mobile-Sidebar ----------
