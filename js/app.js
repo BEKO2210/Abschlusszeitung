@@ -1093,23 +1093,68 @@
     }, 'showers', 'text');
   });
 
-  // ---------- Mobile-Sidebar ----------
+  // ---------- Sidebar Toggle (Desktop + Mobile) ----------
+  //
+  // Desktop: Sidebar standardmäßig AUSGEKLAPPT beim Seitenlauf. Der
+  // Hamburger-Button setzt body.sidebar-collapsed → Workspace rückt
+  // nach links, man sieht mehr von der Zeitung.
+  //
+  // Mobile (<900px): Sidebar standardmäßig EINGEKLAPPT. Hamburger
+  // öffnet sie als Off-Canvas-Drawer mit Backdrop.
 
-  const sidebar = document.getElementById('sidebar');
+  const sidebar  = document.getElementById('sidebar');
   const backdrop = document.getElementById('sidebar-backdrop');
-  function setSidebarOpen(open) {
+  const mobileMQ = window.matchMedia('(max-width: 900px)');
+
+  function isMobile() { return mobileMQ.matches; }
+
+  function setMobileOpen(open) {
     if (!sidebar || !backdrop) return;
     sidebar.classList.toggle('open', open);
     backdrop.hidden = !open;
   }
-  on('btn-sidebar', 'click', () => setSidebarOpen(!sidebar.classList.contains('open')));
-  if (backdrop) backdrop.addEventListener('click', () => setSidebarOpen(false));
+
+  function toggleSidebar() {
+    if (isMobile()) {
+      setMobileOpen(!sidebar.classList.contains('open'));
+    } else {
+      document.body.classList.toggle('sidebar-collapsed');
+    }
+  }
+
+  /** Esc / Nav-Link / Backdrop schließt die jeweils aktive Variante. */
+  function closeSidebar() {
+    if (isMobile()) setMobileOpen(false);
+    else document.body.classList.add('sidebar-collapsed');
+  }
+
+  on('btn-sidebar', 'click', toggleSidebar);
+  if (backdrop) backdrop.addEventListener('click', () => setMobileOpen(false));
   if (sidebar) {
     sidebar.addEventListener('click', (e) => {
-      if (e.target.matches('.sidebar-close')) setSidebarOpen(false);
-      if (e.target.matches('nav a')) setSidebarOpen(false);
+      if (e.target.matches('.sidebar-close')) setMobileOpen(false);
+      // Klick auf Nav-Link schließt die mobile Overlay-Sidebar,
+      // lässt die Desktop-Sidebar aber stehen (User will navigieren,
+      // nicht den Editor-Chrome einklappen).
+      if (e.target.matches('nav a') && isMobile()) setMobileOpen(false);
     });
   }
+
+  // Bei Viewport-Wechsel sauber aufräumen: wenn wir von Desktop auf
+  // Mobile wechseln, .sidebar.open zurücksetzen etc.
+  mobileMQ.addEventListener('change', (e) => {
+    if (e.matches) {
+      // Mobile: Overlay-Drawer geschlossen, sidebar-collapsed irrelevant
+      setMobileOpen(false);
+    } else {
+      // Desktop: Overlay-Klasse aus, Backdrop weg
+      sidebar.classList.remove('open');
+      if (backdrop) backdrop.hidden = true;
+    }
+  });
+
+  // Initial: immer ausgeklappt starten. sidebar-collapsed NICHT setzen.
+  document.body.classList.remove('sidebar-collapsed');
 
   // ---------- Tastatur-Shortcuts ----------
 
@@ -1128,7 +1173,9 @@
     }
     if (e.key === 'Escape') {
       setMenuOpen(false);
-      setSidebarOpen(false);
+      // Esc schließt nur die mobile Overlay-Sidebar — die Desktop-
+      // Sidebar bleibt, wo der User sie hat.
+      if (isMobile()) setMobileOpen(false);
     }
   });
 

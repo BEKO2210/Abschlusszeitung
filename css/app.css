@@ -162,7 +162,9 @@ button.icon-btn {
 }
 
 /* Sidebar-Toggle versteckt auf Desktop */
-.sidebar-toggle { display: none; }
+/* Sidebar-Toggle: auf Desktop sichtbar, klappt die Sidebar ein/aus.
+   Auf Mobile (<900px) übernimmt er die Drawer-Funktion. */
+.sidebar-toggle { display: inline-flex; }
 
 /* Overflow-Menü */
 .menu-wrap { position: relative; }
@@ -212,6 +214,20 @@ button.icon-btn {
   overflow-y: auto;
   z-index: 40;
   transition: transform .2s ease;
+}
+
+/* Kollabierte Sidebar auf Desktop: ganz raus, Workspace rückt nach links */
+body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
+body.sidebar-collapsed .workspace {
+  padding-left: 40px;
+}
+.sidebar, .workspace { transition: transform .2s ease, padding .2s ease; }
+
+/* Hamburger-Icon bekommt Hintergrund-Akzent, wenn Sidebar offen ist */
+body:not(.sidebar-collapsed) .sidebar-toggle {
+  background: var(--ui-text);
+  color: #fff;
+  border-color: var(--ui-text);
 }
 .sidebar-close { display: none; }
 .sidebar h2 {
