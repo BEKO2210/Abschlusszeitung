@@ -331,6 +331,13 @@ button.icon-btn {
   background: rgba(255, 205, 60, 0.08);
 }
 
+/* Platzhalter-Hinweis ausschließlich im Bearbeiten-Modus zeigen */
+.workspace[data-view="preview"] [contenteditable][data-placeholder]:empty::before,
+.workspace[data-view="print-layout"] [contenteditable][data-placeholder]:empty::before,
+.workspace[data-view="preview"] [data-placeholder]:empty::before {
+  content: none !important;
+}
+
 /* Remove-Buttons an Karten */
 .remove-item {
   position: absolute;
