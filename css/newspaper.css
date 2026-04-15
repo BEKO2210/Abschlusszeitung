@@ -276,7 +276,7 @@
 .qa {
   display: grid;
   grid-template-columns: var(--card-icon-size, 4mm) minmax(0, 1fr);
-  align-items: center;
+  align-items: start;            /* Icon bleibt bei der 1. Zeile */
   column-gap: 1.2mm;
   min-width: 0;
   min-height: 0;
@@ -290,7 +290,8 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  cursor: help;
+  cursor: pointer;               /* Klick fokussiert die Antwort */
+  margin-top: 0.2em;             /* leichte Anhebung zur Baseline der Antwort */
 }
 .qa-q svg {
   width: 100%;
@@ -323,14 +324,15 @@
   font-size: var(--card-dt-size, 6.5pt);
   color: var(--accent);
   line-height: 1.1;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 1mm;
+  flex-wrap: wrap;
+  gap: 0.4em 1mm;
   flex-shrink: 0;
 }
 .memory-icon {
-  width: 3mm;
-  height: 3mm;
+  width: var(--card-icon-size, 3mm);
+  height: var(--card-icon-size, 3mm);
   flex-shrink: 0;
   display: block;
 }
