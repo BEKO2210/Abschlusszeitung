@@ -101,8 +101,11 @@
       name: n,
       fach: '',
       hobby: '',
+      essen: '',
+      buch: '',
       beruf: '',
-      memory: 'Mein schönster Moment mit dir: …',
+      motto: '',
+      memory: '',
       photo: null
     }));
   }
@@ -159,6 +162,13 @@
 
     // Defensive Listen / Objekte
     if (!Array.isArray(loaded.students)) loaded.students = d.students;
+    // Steckbrief-Felder auf neues Schema erweitern (essen/buch/motto)
+    loaded.students.forEach(s => {
+      if (typeof s.essen !== 'string')  s.essen  = '';
+      if (typeof s.buch  !== 'string')  s.buch   = '';
+      if (typeof s.motto !== 'string')  s.motto  = '';
+      if (typeof s.memory !== 'string') s.memory = '';
+    });
     if (!Array.isArray(loaded.memories)) loaded.memories = d.memories;
     if (!Array.isArray(loaded.showers))  loaded.showers  = d.showers;
     if (!loaded.photos || typeof loaded.photos !== 'object') loaded.photos = { hero: null, intro: null };
@@ -368,10 +378,13 @@
     list.forEach(item => {
       const clone = tpl.content.firstElementChild.cloneNode(true);
       clone.dataset.studentId = item.id;
-      setField(clone, 'name', item.name);
-      setField(clone, 'fach', item.fach);
-      setField(clone, 'hobby', item.hobby);
-      setField(clone, 'beruf', item.beruf);
+      setField(clone, 'name',   item.name);
+      setField(clone, 'fach',   item.fach);
+      setField(clone, 'hobby',  item.hobby);
+      setField(clone, 'essen',  item.essen);
+      setField(clone, 'buch',   item.buch);
+      setField(clone, 'beruf',  item.beruf);
+      setField(clone, 'motto',  item.motto);
       setField(clone, 'memory', item.memory);
       const photoEl = clone.querySelector('.photo');
       photoEl.dataset.photo = 'student:' + item.id;
@@ -952,10 +965,7 @@
     addAndFocus({
       id: uid(),
       name: 'Name eingeben',
-      fach: '',
-      hobby: '',
-      beruf: '',
-      memory: '',
+      fach: '', hobby: '', essen: '', buch: '', beruf: '', motto: '', memory: '',
       photo: null
     }, 'students', 'name');
   });
